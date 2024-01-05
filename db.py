@@ -1,4 +1,5 @@
-token = "sl.BtFkl-tsln2SSbUO0OYF-ClHUd0-cjyLBCM1iJ5eBeroO6UFisoKYMm6SAIe2ZaUYRLLsav1duk61V0UfcXW05fGSaTpJiur27C_OZCIGHEGfkdLM98mmK9QUg0P8uvBYZMfVEmNoS2RpvlsbT0EBiQ"
+token = "YOUR ACCESS TOKEN HERE"
+# Get one at https://www.dropbox.com/developers/apps/create
 import dropbox
 import os
 import sys
