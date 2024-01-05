@@ -1,23 +1,61 @@
-token = "YOUR ACCESS TOKEN HERE"
-# Get one at https://www.dropbox.com/developers/apps/create
-import dropbox
+token = "Put Token Here"
 import os
 import sys
-
+import math
+import datetime
 # Initialize a Dropbox object using your access token
 dbx = dropbox.Dropbox(token)
-def main_menu():
+def read_settings():
+    try:
+        with open('settings.txt', 'r') as file:
+            settings = file.read().strip()
+            return settings
+    except FileNotFoundError:
+        # If settings.txt does not exist, create it with default sorting by name
+        with open('settings.txt', 'w') as file:
+            file.write('1')  # Default to sort by name
+        return '1'
+def upload_file(local_path):
+    dropbox_path = 'settings.txt' + os.path.basename(local_path)
+    try:
+        with open(local_path, 'rb') as f:
+            dbx.files_upload(f.read(), dropbox_path, mode=dropbox.files.WriteMode('overwrite'))
+            print("File uploaded successfully.")
+    except dropbox.exceptions.ApiError as err:
+        print(f"API error: {err}")
 
-    print("1. List files and download")
-    print("2. Upload a file to Dropbox")
-    choice = input("Select an option (1-2): ")
-    if choice == '1':
-        list_files_and_select('')
-    elif choice == '2':
-        local_file_path = input("Enter the local file path to upload: ")
-        upload_file(local_file_path)
-    else:
-        print("Invalid selection. Please try again.")
+def write_settings(sort_by):
+    with open('settings.txt', 'w') as file:
+        file.write(sort_by)
+
+def settings_menu():
+    print("Settings:")
+    print("1. Sort by Name")
+    print("2. Sort by Size")
+    print("3. Sort by Date modified")
+    sort_by = input("Choose your default sorting method: ")
+    write_settings(sort_by)
+    print("Settings updated.")
+def get_sorting_preference():
+    print("Choose sorting criteria:")
+    print("1. Name")
+    print("2. Size")
+    print("3. Date modified")
+    choice = input("Enter the number of your choice: ")
+    return choice
+
+
+def sort_files(files_and_folders, sort_by):
+    if sort_by == "1":
+        # Sort by name
+        files_and_folders.sort(key=lambda x: x.name.lower())
+    elif sort_by == "2":
+        # Sort by size (folders will be listed first)
+        files_and_folders.sort(key=lambda x: x.size if isinstance(x, dropbox.files.FileMetadata) else -1, reverse=True)
+    elif sort_by == "3":
+        # Sort by date modified
+        files_and_folders.sort(key=lambda x: x.server_modified if isinstance(x, dropbox.files.FileMetadata) else datetime.min, reverse=True)
+    return files_and_folders
 
 
 def upload_file(local_path):
@@ -54,9 +92,20 @@ def download_file_with_progress(selected_item, local_file_path):
                 downloaded += len(chunk)
                 f.write(chunk)
                 done = int(50 * downloaded / file_size)
-                sys.stdout.write("\r[{}{}] {}%".format('█' * done, '.' * (50-done), 2 * done))
+                downloaded_str = convert_size(downloaded)
+                file_size_str = convert_size(file_size)
+                sys.stdout.write(f"\r[{'█' * done}{'.' * (50-done)}] {downloaded_str}/{file_size_str}")
                 sys.stdout.flush()
-        print()  # Newline after download completes
+        print("\nFile downloaded successfully.")  # Newline after download completes
+
+def convert_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return f"{s} {size_name[i]}"
 
 def list_files_and_select(path):
     try:
@@ -64,11 +113,18 @@ def list_files_and_select(path):
         if not files_and_folders:
             print("No files or folders found.")
             return
+        sort_by = get_sorting_preference()
+        sorted_files_and_folders = sort_files(files_and_folders, sort_by)
 
         print("Contents:")
         for i, entry in enumerate(files_and_folders):
-            entry_type = '(Folder)' if isinstance(entry, dropbox.files.FolderMetadata) else '(File)'
-            print(f"{i + 1}. {entry.name} {entry_type}")
+            if isinstance(entry, dropbox.files.FileMetadata):
+                file_size = entry.size  # Get the file size from the metadata
+                size_str = f"({convert_size(file_size)})"
+            else:
+                size_str = "(Folder)"
+            print(f"{i + 1}. {entry.name} {size_str}")
+
 
         # Ask the user to select a file or folder
         selection_index = int(input("Enter the number to open a file or dive into a folder: ")) - 1
@@ -109,6 +165,28 @@ def list_files_and_select(path):
     except dropbox.exceptions.ApiError as err:
         print(f"API error: {err}")
 
-# Start by listing the contents of the root directory
+
+
+def main_menu():
+    while True:
+        print("Main Menu:")
+        print("1. List Files and Folders")
+        print("2. Settings")
+        print("3. Upload File")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            sort_by = read_settings()
+            # Call the function to list files and folders using the sort_by setting
+            # list_files_and_select(path, sort_by)
+            list_files_and_select('')
+            list
+        elif choice == "2":
+            settings_menu()
+        elif choice == "3":
+            upload
+        else:
+            print("Invalid choice, please try again.")
+
 main_menu()
 
